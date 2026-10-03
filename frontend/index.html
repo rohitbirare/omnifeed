@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OmniFeed | Autonomous Multimodal Content Pipeline</title>
+  <meta name="description" content="Autonomous multimodal content pipeline for the Qoneqt Global Feed. Transforms topics into publish-ready 9:16 vertical videos." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded bg-teal-700 flex items-center justify-center text-white font-bold text-sm tracking-wider">
+          OF
+        </div>
+        <div>
+          <span class="font-semibold text-slate-900 text-lg tracking-tight">OmniFeed</span>
+          <span class="ml-2 text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">Qoneqt Feed Pipeline</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-1 sm:space-x-2 text-sm font-medium">
+        <button id="nav-create" class="nav-tab active px-3 py-1.5 rounded-md text-teal-800 bg-teal-50 border border-teal-200" onclick="switchView('create')">
+          Create Video
+        </button>
+        <button id="nav-batch" class="nav-tab px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent" onclick="switchView('batch')">
+          Batch Pipeline
+        </button>
+        <button id="nav-library" class="nav-tab px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent" onclick="switchView('library')">
+          Video Library (<span id="library-count">0</span>)
+        </button>
+        <button id="nav-status" class="nav-tab px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent" onclick="switchView('status')">
+          System Status
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Global Alert Banner for Network / JSON Errors -->
+  <div id="global-error-banner" class="hidden bg-rose-50 border-b border-rose-200 text-rose-800 px-4 py-3 text-xs flex items-center justify-between z-40">
+    <div class="flex items-center space-x-2">
+      <span class="font-semibold">Network / API Notice:</span>
+      <span id="global-error-text">Unable to communicate with backend server.</span>
+    </div>
+    <div class="flex items-center space-x-2">
+      <button onclick="copyGlobalError()" class="px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-900 rounded font-medium">Copy Error</button>
+      <button onclick="dismissGlobalError()" class="text-rose-500 hover:text-rose-800 font-bold">&times;</button>
+    </div>
+  </div>
+
+  <!-- Main View Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- VIEW 1: CREATE VIDEO -->
+    <section id="view-create" class="space-y-6">
+      <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+        <div class="border-b border-slate-100 pb-4 mb-6">
+          <h1 class="text-xl font-semibold text-slate-900">Generate Global Feed Video</h1>
+          <p class="text-sm text-slate-500 mt-1">Transform any topic, prompt, idea, or trend into an autonomous 9:16 vertical video package calibrated for Qoneqt.</p>
+        </div>
+
+        <form id="create-form" onsubmit="handleCreateJob(event)" class="space-y-6">
+          <!-- Topic / Trend Input -->
+          <div>
+            <label for="input-topic" class="block text-sm font-medium text-slate-800 mb-1">
+              Topic, Prompt, Idea, or Trend <span class="text-rose-600">*</span>
+            </label>
+            <textarea id="input-topic" rows="3" required placeholder="e.g., Why solid-state batteries are about to make electric vehicles charge in 5 minutes..." class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-700 focus:border-teal-700"></textarea>
+          </div>
+
+          <!-- Configuration Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Language Selection -->
+            <div>
+              <label for="select-language" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Target Language
+              </label>
+              <select id="select-language" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-teal-700">
+                <option value="en" selected>English</option>
+                <option value="hi">Hindi (हिंदी)</option>
+                <option value="mr">Marathi (मराठी)</option>
+              </select>
+            </div>
+
+            <!-- Target Length -->
+            <div>
+              <label for="select-length" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Target Length
+              </label>
+              <select id="select-length" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-teal-700">
+                <option value="20">20 Seconds (Fast Punch)</option>
+                <option value="30" selected>30 Seconds (Standard Feed)</option>
+                <option value="45">45 Seconds (Deep Dive)</option>
+                <option value="60">60 Seconds (Full Breakdown)</option>
+              </select>
+            </div>
+
+            <!-- Narrative Tone -->
+            <div>
+              <label for="select-tone" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Narrative Tone
+              </label>
+              <select id="select-tone" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-teal-700">
+                <option value="Informative" selected>Informative & Clear</option>
+                <option value="Punchy">Punchy & Fast-Paced</option>
+                <option value="Analytical">Analytical & Data-Driven</option>
+                <option value="Urgent">Breaking / Urgent</option>
+                <option value="Casual">Conversational & Casual</option>
+              </select>
+            </div>
+
+            <!-- Visual Style -->
+            <div>
+              <label for="select-style" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Visual Aesthetic
+              </label>
+              <select id="select-style" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-teal-700">
+                <option value="Photographic" selected>Photographic (High-Res Stock)</option>
+                <option value="Cinematic">Cinematic Moody</option>
+                <option value="Minimalist">Minimalist Modern</option>
+                <option value="Technical">Technical Blueprint</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Community Context (Optional) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+            <div>
+              <label for="input-community-name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Target Community Name <span class="text-slate-400 font-normal">(Optional)</span>
+              </label>
+              <input type="text" id="input-community-name" placeholder="e.g. NextGen Mobility, AI Founders..." class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-teal-700" />
+            </div>
+
+            <div>
+              <label for="input-community-desc" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Community Niche Context <span class="text-slate-400 font-normal">(Optional)</span>
+              </label>
+              <input type="text" id="input-community-desc" placeholder="e.g. Early adopters and clean energy investors..." class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-teal-700" />
+            </div>
+          </div>
+
+          <!-- Compliance & Disclosure Toggle -->
+          <div class="flex items-center space-x-2 pt-2">
+            <input type="checkbox" id="check-disclosure" checked class="w-4 h-4 text-teal-700 rounded border-slate-300 focus:ring-teal-700" />
+            <label for="check-disclosure" class="text-xs text-slate-600">
+              Append transparent AI-assisted generation disclosure to social feed post caption.
+            </label>
+          </div>
+
+          <!-- Form Submit Action -->
+          <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-xs text-slate-500">Autonomous execution: Script, TTS Voice, Pixabay Visuals, Kinetic Subtitles & Quality Verification.</span>
+            <button type="submit" id="btn-submit-create" class="px-5 py-2.5 bg-teal-700 hover:bg-teal-800 text-white rounded-md text-sm font-medium transition flex items-center space-x-2 shadow-sm">
+              <span>Generate Video Package</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- VIEW 2: BATCH PIPELINE -->
+    <section id="view-batch" class="hidden space-y-6">
+      <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+        <div class="border-b border-slate-100 pb-4 mb-6">
+          <h1 class="text-xl font-semibold text-slate-900">Batch Video Pipeline</h1>
+          <p class="text-sm text-slate-500 mt-1">Queue multiple video generation jobs simultaneously with unified language and style configuration.</p>
+        </div>
+
+        <form id="batch-form" onsubmit="handleBatchJob(event)" class="space-y-6">
+          <div>
+            <label for="batch-topics" class="block text-sm font-medium text-slate-800 mb-1">
+              Topics List <span class="text-xs text-slate-500 font-normal">(One prompt/topic per line, max 20)</span>
+            </label>
+            <textarea id="batch-topics" rows="6" required placeholder="Why solid-state batteries are the future of electric vehicles&#10;How quantum key distribution prevents network interception&#10;Three practical habits to increase deep work focus" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-900 bg-white placeholder-slate-400 font-mono focus:outline-none focus:ring-1 focus:ring-teal-700"></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label for="batch-language" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Language</label>
+              <select id="batch-language" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-teal-700">
+                <option value="en" selected>English</option>
+                <option value="hi">Hindi (हिंदी)</option>
+                <option value="mr">Marathi (मराठी)</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="batch-length" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Target Length</label>
+              <select id="batch-length" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-teal-700">
+                <option value="20">20 Seconds</option>
+                <option value="30" selected>30 Seconds</option>
+                <option value="45">45 Seconds</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="batch-style" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Visual Style</label>
+              <select id="batch-style" class="w-full px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-teal-700">
+                <option value="Photographic" selected>Photographic</option>
+                <option value="Cinematic">Cinematic</option>
+                <option value="Minimalist">Minimalist</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-xs text-slate-500">Processed sequentially with max 2 concurrent rendering threads.</span>
+            <button type="submit" id="btn-submit-batch" class="px-5 py-2.5 bg-teal-700 hover:bg-teal-800 text-white rounded-md text-sm font-medium transition flex items-center space-x-2 shadow-sm">
+              <span>Queue Batch Generation</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- VIEW 3: VIDEO LIBRARY -->
+    <section id="view-library" class="hidden space-y-6">
+      <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4 mb-6 gap-4">
+          <div>
+            <h1 class="text-xl font-semibold text-slate-900">Video Library</h1>
+            <p class="text-sm text-slate-500 mt-1">Persisted jobs, measured generation telemetry, and publish status.</p>
+          </div>
+
+          <!-- Status Filters -->
+          <div class="flex items-center space-x-1 text-xs bg-slate-100 p-1 rounded-md border border-slate-200 self-start sm:self-auto">
+            <button class="filter-btn px-2.5 py-1 rounded font-medium bg-white text-slate-900 shadow-xs" onclick="filterLibrary('all')">All</button>
+            <button class="filter-btn px-2.5 py-1 rounded font-medium text-slate-600 hover:text-slate-900" onclick="filterLibrary('completed')">Completed</button>
+            <button class="filter-btn px-2.5 py-1 rounded font-medium text-slate-600 hover:text-slate-900" onclick="filterLibrary('processing')">Processing</button>
+            <button class="filter-btn px-2.5 py-1 rounded font-medium text-slate-600 hover:text-slate-900" onclick="filterLibrary('flagged')">Flagged</button>
+            <button class="filter-btn px-2.5 py-1 rounded font-medium text-slate-600 hover:text-slate-900" onclick="filterLibrary('failed')">Failed</button>
+          </div>
+        </div>
+
+        <!-- Jobs Table Container -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 text-xs uppercase tracking-wider font-semibold">
+              <tr>
+                <th class="py-3 px-4">Title / Topic</th>
+                <th class="py-3 px-4">Lang</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4">Current Stage</th>
+                <th class="py-3 px-4">Total Time</th>
+                <th class="py-3 px-4">Created</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="library-tbody" class="divide-y divide-slate-100 text-slate-800 font-normal">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+
+          <!-- Honest Empty State -->
+          <div id="library-empty" class="hidden py-12 text-center">
+            <p class="text-sm font-medium text-slate-600">No videos yet</p>
+            <p class="text-xs text-slate-400 mt-1">Submit a topic from the Create Video tab to generate your first video.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: SYSTEM STATUS & SETTINGS -->
+    <section id="view-status" class="hidden space-y-6">
+      <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4 mb-6 gap-4">
+          <div>
+            <h1 class="text-xl font-semibold text-slate-900">System Status & Integrations</h1>
+            <p class="text-sm text-slate-500 mt-1">Real-time status of pipeline dependencies, provider connectivity, and media tools.</p>
+          </div>
+
+          <!-- Full Self-Test Button -->
+          <div>
+            <button onclick="runFullSelfTest()" id="btn-run-selftest" class="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-md text-xs font-semibold transition flex items-center space-x-2 shadow-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>Run Full Self-Test</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Full Self-Test Live Results Card (Initially hidden) -->
+        <div id="selftest-card" class="hidden border border-teal-200 bg-teal-50/50 rounded-lg p-5 space-y-3">
+          <div class="flex items-center justify-between border-b border-teal-200 pb-2">
+            <span class="text-sm font-semibold text-teal-900">Full Pipeline Self-Test Results</span>
+            <span id="selftest-overall-badge" class="text-xs px-2.5 py-0.5 rounded font-bold bg-teal-100 text-teal-800">Running...</span>
+          </div>
+          <div id="selftest-results-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+            <!-- Dynamically populated self-test items -->
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Providers Overview Card -->
+          <div class="border border-slate-200 rounded-md p-4 space-y-4">
+            <h2 class="text-sm font-semibold text-slate-900 uppercase tracking-wider text-xs border-b border-slate-100 pb-2">Provider Configuration</h2>
+
+            <div class="space-y-3 text-sm">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="font-medium text-slate-800">
+                    LLM Engine <span class="text-xxs uppercase tracking-wider font-semibold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 ml-1">Required</span>
+                  </div>
+                  <div id="cfg-llm-model" class="text-xs text-slate-500">Checking...</div>
+                </div>
+                <div id="cfg-llm-badge" class="text-xs px-2 py-0.5 rounded font-medium bg-slate-100 text-slate-600">Checking</div>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-slate-100 pt-2">
+                <div>
+                  <div class="font-medium text-slate-800">
+                    Pixabay Stock Photos <span class="text-xxs uppercase tracking-wider font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 ml-1">Auto-Fallback</span>
+                  </div>
+                  <div class="text-xs text-slate-500">Vertical orientation stock photo search (falls back to scene cards)</div>
+                </div>
+                <div id="cfg-pixabay-badge" class="text-xs px-2 py-0.5 rounded font-medium bg-slate-100 text-slate-600">Checking</div>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-slate-100 pt-2">
+                <div>
+                  <div class="font-medium text-slate-800">
+                    Voice Synthesis (TTS) <span class="text-xxs uppercase tracking-wider font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 ml-1">Built-in</span>
+                  </div>
+                  <div class="text-xs text-slate-500">edge-tts + gTTS fallback (en-IN, hi-IN, mr-IN)</div>
+                </div>
+                <div class="text-xs px-2 py-0.5 rounded font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Active</div>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-slate-100 pt-2">
+                <div>
+                  <div class="font-medium text-slate-800">
+                    AI Image Generation <span class="text-xxs uppercase tracking-wider font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 ml-1">Optional</span>
+                  </div>
+                  <div id="cfg-image-model" class="text-xs text-slate-500">OpenAI-compatible /images/generations</div>
+                </div>
+                <div id="cfg-image-badge" class="text-xs px-2 py-0.5 rounded font-medium bg-slate-100 text-slate-600">Checking</div>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-slate-100 pt-2">
+                <div>
+                  <div class="font-medium text-slate-800">
+                    Qoneqt Publishing API <span class="text-xxs uppercase tracking-wider font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 ml-1">Optional</span>
+                  </div>
+                  <div id="cfg-qoneqt-mode" class="text-xs text-slate-500">Assisted mode (default)</div>
+                </div>
+                <div id="cfg-qoneqt-badge" class="text-xs px-2 py-0.5 rounded font-medium bg-slate-100 text-slate-600">Checking</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Media Engine & Individual Diagnostic Tests -->
+          <div class="border border-slate-200 rounded-md p-4 space-y-4">
+            <h2 class="text-sm font-semibold text-slate-900 uppercase tracking-wider text-xs border-b border-slate-100 pb-2">Media Engine & Individual Tests</h2>
+
+            <div class="space-y-3 text-sm">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="font-medium text-slate-800">FFmpeg (libx264 & libass)</div>
+                  <div class="text-xs text-slate-500">Video encoding & kinetic subtitle burning</div>
+                </div>
+                <div id="cfg-ffmpeg-badge" class="text-xs px-2 py-0.5 rounded font-medium bg-slate-100 text-slate-600">Checking</div>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-slate-100 pt-2">
+                <div>
+                  <div class="font-medium text-slate-800">ffprobe</div>
+                  <div class="text-xs text-slate-500">Quality verification & duration calculation</div>
+                </div>
+                <div id="cfg-ffprobe-badge" class="text-xs px-2 py-0.5 rounded font-medium bg-slate-100 text-slate-600">Checking</div>
+              </div>
+            </div>
+
+            <!-- Diagnostics Action Buttons -->
+            <div class="pt-4 border-t border-slate-100 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-slate-700">LLM Connection Test</span>
+                <button onclick="runTestLLM()" id="btn-test-llm" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs rounded border border-slate-300 font-medium">Test Connection</button>
+              </div>
+              <div id="test-llm-result" class="text-xs text-slate-500 font-mono hidden bg-slate-50 p-2 rounded border border-slate-200"></div>
+
+              <div class="flex items-center justify-between pt-2">
+                <span class="text-xs font-medium text-slate-700">Image Provider Test</span>
+                <button onclick="runTestImage()" id="btn-test-image" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs rounded border border-slate-300 font-medium">Test Connection</button>
+              </div>
+              <div id="test-image-result" class="text-xs text-slate-500 font-mono hidden bg-slate-50 p-2 rounded border border-slate-200"></div>
+
+              <div class="flex items-center justify-between pt-2">
+                <span class="text-xs font-medium text-slate-700">Pixabay Search Test</span>
+                <button onclick="runTestPixabay()" id="btn-test-pixabay" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs rounded border border-slate-300 font-medium">Test Connection</button>
+              </div>
+              <div id="test-pixabay-result" class="text-xs text-slate-500 font-mono hidden bg-slate-50 p-2 rounded border border-slate-200"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 5: JOB DETAIL MODAL / DRAWER -->
+    <div id="job-detail-modal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto hidden">
+      <div class="bg-white rounded-lg border border-slate-200 shadow-xl max-w-4xl w-full max-h-[92vh] flex flex-col my-auto overflow-hidden">
+        
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 shrink-0">
+          <div>
+            <div class="flex items-center space-x-2">
+              <h2 id="modal-title" class="text-base font-semibold text-slate-900 truncate max-w-lg">Job Details</h2>
+              <span id="modal-status-badge" class="text-xs px-2 py-0.5 rounded font-medium bg-slate-100 text-slate-700">queued</span>
+            </div>
+            <p id="modal-topic" class="text-xs text-slate-500 truncate max-w-xl mt-0.5"></p>
+          </div>
+          <button onclick="closeJobModal()" class="text-slate-400 hover:text-slate-700 p-1 rounded-md">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Modal Body Scrollable -->
+        <div class="px-6 py-6 space-y-6 overflow-y-auto flex-1 text-sm">
+
+          <!-- Stage Progress Bar with Real Measured Seconds -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-semibold text-slate-800 uppercase tracking-wider">Pipeline Stages (Real Latency)</h3>
+              <span id="modal-total-time" class="text-xs font-mono text-slate-500">Total: 0.0s</span>
+            </div>
+            <div id="modal-stages-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <!-- Dynamically populated with stage boxes and measured seconds -->
+            </div>
+          </div>
+
+          <!-- Video Player & Quality Report Card -->
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+            
+            <!-- Video Player (9:16 vertical ratio) -->
+            <div class="md:col-span-5 flex flex-col items-center">
+              <div class="w-full max-w-[280px] aspect-[9/16] bg-slate-900 rounded-lg overflow-hidden border border-slate-200 shadow-xs relative flex items-center justify-center">
+                <video id="modal-video-player" controls playsinline class="w-full h-full object-contain hidden"></video>
+                <div id="modal-video-placeholder" class="text-center p-4 text-slate-400 text-xs">
+                  <svg class="w-8 h-8 mx-auto mb-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                  <span>Video rendering in progress...</span>
+                </div>
+              </div>
+
+              <!-- Media Action Buttons -->
+              <div id="modal-media-actions" class="w-full max-w-[280px] mt-3 space-y-2 hidden">
+                <a id="btn-download-mp4" href="#" download class="w-full py-1.5 px-3 bg-teal-700 hover:bg-teal-800 text-white rounded text-xs font-medium text-center block shadow-xs">
+                  Download MP4 (1080x1920)
+                </a>
+                <a id="btn-download-thumb" href="#" download class="w-full py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded text-xs font-medium text-center block">
+                  Download Thumbnail (JPG)
+                </a>
+              </div>
+            </div>
+
+            <!-- Right Column: Quality Report, Content Check, Publishing -->
+            <div class="md:col-span-7 space-y-4">
+              
+              <!-- Content Safety Result Card -->
+              <div id="card-safety" class="border border-slate-200 rounded-md p-3 text-xs space-y-1">
+                <div class="flex items-center justify-between font-semibold">
+                  <span>Content Safety & Policy Audit</span>
+                  <span id="safety-status-badge" class="px-1.5 py-0.5 rounded text-slate-600 bg-slate-100">Pending</span>
+                </div>
+                <p id="safety-reason" class="text-slate-600">Verification pending execution.</p>
+                <div id="safety-approval-action" class="pt-2 hidden">
+                  <button onclick="approveJobContent()" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-medium">
+                    Approve Content Anyway
+                  </button>
+                  <span class="text-slate-500 ml-2">Unlocks publishing panel.</span>
+                </div>
+              </div>
+
+              <!-- ffprobe Quality Verification Card -->
+              <div id="card-quality" class="border border-slate-200 rounded-md p-3 text-xs space-y-2">
+                <div class="flex items-center justify-between font-semibold border-b border-slate-100 pb-1.5">
+                  <span>Automated Quality Verification (ffprobe)</span>
+                  <span id="quality-overall-badge" class="px-1.5 py-0.5 rounded text-slate-600 bg-slate-100">Pending</span>
+                </div>
+                <div id="quality-checks-list" class="space-y-1 text-slate-600">
+                  <!-- Dynamically populated checks -->
+                </div>
+              </div>
+
+              <!-- Publishing Panel -->
+              <div id="card-publishing" class="border border-slate-200 rounded-md p-3 text-xs space-y-3 bg-slate-50">
+                <div class="flex items-center justify-between font-semibold">
+                  <span>Qoneqt Global Feed Publishing</span>
+                  <span id="published-badge" class="hidden px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-medium">Published</span>
+                </div>
+
+                <!-- Assisted Publishing Mode -->
+                <div id="assisted-publish-steps" class="space-y-2 text-slate-700">
+                  <p class="font-medium text-slate-800">Publishing Steps:</p>
+                  <ol class="list-decimal list-inside space-y-1 text-xs text-slate-600">
+                    <li>Download the 1080x1920 MP4 file.</li>
+                    <li>Copy the post caption and hashtags below.</li>
+                    <li>Open <a id="link-qoneqt" href="https://qoneqt.com" target="_blank" rel="noopener" class="text-teal-700 underline font-medium">Qoneqt Global Feed</a>.</li>
+                    <li>Upload your MP4 video and paste the caption.</li>
+                    <li>Paste your published post URL below to confirm:</li>
+                  </ol>
+                  <div class="flex items-center space-x-2 pt-1">
+                    <input type="url" id="input-confirm-url" placeholder="https://qoneqt.com/post/..." class="flex-1 px-2.5 py-1.5 bg-white border border-slate-300 rounded text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-teal-700" />
+                    <button onclick="confirmAssistedPublish()" class="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white rounded text-xs font-medium shrink-0">Confirm Published</button>
+                  </div>
+                </div>
+
+                <!-- API Publishing Mode -->
+                <div id="api-publish-section" class="hidden space-y-2 border-t border-slate-200 pt-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-slate-600">Direct API upload configured.</span>
+                    <button onclick="publishViaAPI()" id="btn-api-publish" class="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white rounded text-xs font-medium">
+                      Publish via API
+                    </button>
+                  </div>
+                  <div id="api-publish-response" class="hidden p-2 bg-slate-100 rounded text-xs font-mono text-slate-700 max-h-24 overflow-y-auto"></div>
+                </div>
+
+                <!-- Confirmed Published State -->
+                <div id="confirmed-publish-info" class="hidden text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 p-2 rounded">
+                  Published to Global Feed: <a id="published-post-link" href="#" target="_blank" rel="noopener" class="underline font-medium break-all"></a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 Hooks Section -->
+          <div class="border border-slate-200 rounded-md p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-semibold text-slate-800 uppercase tracking-wider">3-Second Retention Hooks</h3>
+              <span id="chosen-hook-reason" class="text-xs text-slate-500 italic max-w-md truncate"></span>
+            </div>
+            <div id="hooks-list" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <!-- Dynamically populated hooks -->
+            </div>
+          </div>
+
+          <!-- Script & Scene Breakdown -->
+          <div class="border border-slate-200 rounded-md p-4 space-y-4">
+            <h3 class="text-xs font-semibold text-slate-800 uppercase tracking-wider">Spoken Narration Script</h3>
+            <div id="modal-script" class="p-3 bg-slate-50 rounded border border-slate-200 text-xs text-slate-800 leading-relaxed font-normal">
+              Script text...
+            </div>
+
+            <!-- Scene Frames Grid -->
+            <div>
+              <h4 class="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Visual Scene Plan</h4>
+              <div id="modal-scenes-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <!-- Dynamically populated scenes -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Post Caption & Hashtags -->
+          <div class="border border-slate-200 rounded-md p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-semibold text-slate-800 uppercase tracking-wider">Social Post Caption & Hashtags</h3>
+              <button onclick="copyPostCaption()" class="text-xs text-teal-700 hover:text-teal-800 font-medium flex items-center space-x-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                <span id="copy-caption-text">Copy Caption</span>
+              </button>
+            </div>
+            <textarea id="modal-caption" rows="4" class="w-full p-2.5 border border-slate-300 rounded text-xs text-slate-800 bg-white font-sans focus:outline-none focus:ring-1 focus:ring-teal-700"></textarea>
+          </div>
+
+          <!-- Failure / Error Box (if failed) -->
+          <div id="modal-error-box" class="hidden bg-rose-50 border border-rose-200 rounded p-4 text-xs text-rose-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="font-semibold text-rose-900 flex items-center space-x-2">
+                <span>Pipeline Execution Error</span>
+                <span id="modal-error-stage" class="text-xxs px-2 py-0.5 rounded font-mono bg-rose-100 text-rose-800 border border-rose-300">stage: unknown</span>
+              </div>
+              <button onclick="copyModalError()" class="px-2.5 py-1 bg-white hover:bg-rose-100 text-rose-800 border border-rose-300 rounded text-xs font-medium flex items-center space-x-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                <span id="copy-error-btn-text">Copy Error</span>
+              </button>
+            </div>
+            <pre id="modal-error-msg" class="font-mono text-rose-700 whitespace-pre-wrap break-words bg-white/70 p-2 rounded border border-rose-200 max-h-48 overflow-y-auto"></pre>
+            <div>
+              <button onclick="retryCurrentJob()" class="px-3 py-1.5 bg-rose-700 hover:bg-rose-800 text-white rounded font-medium">
+                Retry Job From Failed Stage
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-6 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0 text-xs">
+          <span id="modal-job-id" class="text-slate-400 font-mono text-xxs"></span>
+          <div class="flex items-center space-x-2">
+            <button onclick="deleteCurrentJob()" class="text-rose-600 hover:text-rose-800 px-3 py-1 font-medium">Delete</button>
+            <button onclick="closeJobModal()" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded font-medium">Close</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div>OmniFeed · Autonomous Multimodal Pipeline for Qoneqt</div>
+      <div class="flex items-center space-x-4">
+        <span>Headless FFmpeg Engine</span>
+        <span>•</span>
+        <span>libass Subtitles</span>
+        <span>•</span>
+        <span>9:16 Vertical Video</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.git
+.gitignore
+.env
+data/media/*
+data/*.db
+node_modules
+.vite
+dist
+.pytest_cache
